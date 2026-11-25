@@ -4070,6 +4070,41 @@ static void refresh_listener(
 		}
 	}
 
+	/* port: a local player who left the game in progress gives up his slot
+	when a joiner takes it (players.c, player_delete), and his listener is no
+	longer valid; the sounds he heard still name it, and the channels' search
+	and update assert on a sound's listener (source_distance_squared,
+	update_channels). Another local player's stands in before any of them */
+	{
+		short valid_listener_index;
+
+		for (valid_listener_index = 0;
+			valid_listener_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS &&
+				!listener_get(valid_listener_index)->valid;
+			valid_listener_index++)
+		{
+		}
+
+		if (valid_listener_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+		{
+			long sound_index = data_next_index(sound_data, NONE);
+
+			while (sound_index != NONE)
+			{
+				struct sound_datum *sound = sound_get(sound_index);
+
+				if (sound->listener_index < 0 ||
+					sound->listener_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS ||
+					!listener_get(sound->listener_index)->valid)
+				{
+					sound->listener_index = valid_listener_index;
+				}
+
+				sound_index = data_next_index(sound_data, sound_index);
+			}
+		}
+	}
+
 	properties.forward = *global_forward3d;
 	properties.up = *global_up3d;
 	properties.position = *global_origin3d;
